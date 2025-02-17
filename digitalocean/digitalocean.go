@@ -103,23 +103,22 @@ func (s DigitalOceanObjectStorage) Upload(key string, bytesReadSeeker io.ReadSee
 	}
 
 	// Run the PutObject function with your parameters, catching for errors.
-	output, err := s.s3Client.PutObject(context.TODO(), input)
-	if output != nil {
-		fmt.Println("   [UploadFile] output:", *output)
-	}
-	if err != nil {
-		return err
-	}
-
+	_, err := s.s3Client.PutObject(context.TODO(), input)
 	return err
 }
 
 func (s DigitalOceanObjectStorage) List(prefix string, opts objectstorage.ListOpts) ([]string, error) {
 
+	if opts.Limit < 0 {
+		return nil, fmt.Errorf("opts.Limit must be equal to or greater than 0")
+	}
+
+	// 0 means no limit
+	var limit int = opts.Limit
+
 	input := &s3.ListObjectsV2Input{
-		Bucket:  aws.String(s.bucket),
-		Prefix:  aws.String(prefix),
-		MaxKeys: opts.Limit,
+		Bucket: aws.String(s.bucket),
+		Prefix: aws.String(prefix),
 	}
 
 	var files []string
@@ -132,11 +131,20 @@ func (s DigitalOceanObjectStorage) List(prefix string, opts objectstorage.ListOp
 
 		for _, obj := range output.Contents {
 			files = append(files, *obj.Key)
+			if limit != 0 && len(files) >= int(limit) {
+				break
+			}
+		}
+
+		if limit != 0 && len(files) >= int(limit) {
+			break
 		}
 	}
 
 	return files, nil
 }
+
+// TODO: Implement some kind of paginator API for DigitalOceanObjectStorage
 
 // unexported methods
 
@@ -144,7 +152,7 @@ func (s DigitalOceanObjectStorage) List(prefix string, opts objectstorage.ListOp
 func (s *DigitalOceanObjectStorage) testConnection() error {
 	// test the connection to the DigitalOcean Spaces API
 	_, err := s.List("", objectstorage.ListOpts{
-		Limit: aws.Int32(1),
+		Limit: 1,
 	})
 	return err
 }

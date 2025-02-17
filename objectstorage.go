@@ -3,7 +3,7 @@ package objectstorage
 import "io"
 
 type ListOpts struct {
-	Limit *int32
+	Limit int // 0 means no limit
 }
 
 // ObjectStorage is a generic interface for interacting with object storage services
