@@ -74,7 +74,7 @@ func NewDigitalOceanObjectStorage(config DigitalOceanConfig, opts DigitalOceanOb
 
 // Implementation of the ObjectStorage interface
 
-func (s DigitalOceanObjectStorage) Download(key string) ([]byte, error) {
+func (s DigitalOceanObjectStorage) Download(key string) (io.ReadCloser, error) {
 
 	// Create the input parameters for getting the object
 	input := &s3.GetObjectInput{
@@ -85,25 +85,24 @@ func (s DigitalOceanObjectStorage) Download(key string) ([]byte, error) {
 	// Get the object from the bucket
 	result, err := s.s3Client.GetObject(context.TODO(), input)
 	if err != nil {
-		return nil, fmt.Errorf("failed to download file %s: %w", key, err)
+		return nil, err
 	}
-	defer result.Body.Close()
 
-	// Read the entire body
-	return io.ReadAll(result.Body)
+	return result.Body, nil
 }
 
-func (s DigitalOceanObjectStorage) Upload(key string, bytesReadSeeker io.ReadSeeker) error {
+func (s DigitalOceanObjectStorage) Upload(key string, dataReader io.Reader) error {
 
 	// Define the parameters of the object you want to upload.
 	input := &s3.PutObjectInput{
 		Bucket: aws.String(s.bucket),
 		Key:    aws.String(key),
-		Body:   bytesReadSeeker,
+		Body:   dataReader,
 	}
 
 	// Run the PutObject function with your parameters, catching for errors.
 	_, err := s.s3Client.PutObject(context.TODO(), input)
+
 	return err
 }
 

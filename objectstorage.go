@@ -10,10 +10,10 @@ type ListOpts struct {
 type ObjectStorage interface {
 
 	// Download an object by key
-	Download(key string) ([]byte, error)
+	Download(key string) (io.ReadCloser, error)
 
 	// Upload an object
-	Upload(key string, bytesReadSeeker io.ReadSeeker) error
+	Upload(key string, bytesReadSeeker io.Reader) error
 
 	// List objects
 	List(prefix string, opts ListOpts) ([]string, error)
